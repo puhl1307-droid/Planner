@@ -1,11 +1,11 @@
 from PySide6.QtWidgets import (
-    QFrame,
     QHBoxLayout,
-    QLabel,
     QMainWindow,
-    QVBoxLayout,
     QWidget,
 )
+
+from app.calendar_view import CalendarView
+from app.task_panel import TaskPanel
 
 
 class MainWindow(QMainWindow):
@@ -21,65 +21,12 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
-        main_layout = QHBoxLayout(central_widget)
+        layout = QHBoxLayout(central_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        sidebar = self.create_sidebar()
-        calendar = self.create_calendar_area()
-        task_panel = self.create_task_panel()
+        calendar_view = CalendarView()
+        task_panel = TaskPanel()
 
-        main_layout.addWidget(sidebar, 1)
-        main_layout.addWidget(calendar, 4)
-        main_layout.addWidget(task_panel, 2)
-
-    def create_sidebar(self):
-        frame = QFrame()
-
-        layout = QVBoxLayout(frame)
-
-        title = QLabel("Planner")
-        today = QLabel("Heute")
-        week = QLabel("Woche")
-        tasks = QLabel("Aufgaben")
-        projects = QLabel("Projekte")
-
-        layout.addWidget(title)
-        layout.addSpacing(20)
-
-        layout.addWidget(today)
-        layout.addWidget(week)
-        layout.addWidget(tasks)
-        layout.addWidget(projects)
-
-        layout.addStretch()
-
-        return frame
-
-    def create_calendar_area(self):
-        frame = QFrame()
-
-        layout = QVBoxLayout(frame)
-
-        title = QLabel("Heute")
-        placeholder = QLabel("Hier entsteht später das Time Grid")
-
-        layout.addWidget(title)
-        layout.addWidget(placeholder)
-        layout.addStretch()
-
-        return frame
-
-    def create_task_panel(self):
-        frame = QFrame()
-
-        layout = QVBoxLayout(frame)
-
-        title = QLabel("Offene Aufgaben")
-
-        layout.addWidget(title)
-        layout.addWidget(QLabel("☐ Beispielaufgabe 1"))
-        layout.addWidget(QLabel("☐ Beispielaufgabe 2"))
-        layout.addWidget(QLabel("☐ Beispielaufgabe 3"))
-
-        layout.addStretch()
-
-        return frame
+        layout.addWidget(calendar_view, 1)
+        layout.addWidget(task_panel)
