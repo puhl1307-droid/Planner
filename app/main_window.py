@@ -6,6 +6,10 @@ from PySide6.QtWidgets import (
 
 from app.calendar_view import CalendarView
 from app.task_panel import TaskPanel
+from app.sample_data import (
+    create_sample_areas,
+    create_sample_tasks,
+)
 
 
 class MainWindow(QMainWindow):
@@ -26,7 +30,14 @@ class MainWindow(QMainWindow):
         layout.setSpacing(0)
 
         calendar_view = CalendarView()
-        task_panel = TaskPanel()
+        
+        areas = create_sample_areas()
+        tasks = create_sample_tasks()
+
+        task_panel = TaskPanel(
+            tasks=tasks,
+            areas=areas,
+        )
 
         layout.addWidget(calendar_view, 1)
         layout.addWidget(task_panel)
