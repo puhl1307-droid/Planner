@@ -11,7 +11,6 @@ from PySide6.QtWidgets import (
 from app.models.task import Task
 from app.dialogs.task_dialog import TaskDialog
 from app.idea_note_panel import IdeaNotePanel
-from app.models.idea_note import IdeaNoteStatus
 from app.services.task_service import TaskService
 
 
@@ -198,7 +197,8 @@ class TaskPanel(QFrame):
                 selected_date.day(),
             )
 
-        new_task = self.task_service.create_task(
+        new_task = self.task_service.convert_idea_to_task(
+            idea=idea,
             title=title,
             description=description,
             area_id=dialog.area_input.currentData(),
@@ -209,8 +209,5 @@ class TaskPanel(QFrame):
         )
 
         self.add_task_widget(new_task)
-
-        idea.status = IdeaNoteStatus.CONVERTED
-        idea.converted_task_id = new_task.id
 
         idea_frame.hide()
