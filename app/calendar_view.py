@@ -1,34 +1,42 @@
 from datetime import date
 
 from PySide6.QtWidgets import (
+    QDialog,
     QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QScrollArea,
-    QSizePolicy,
     QVBoxLayout,
-    QWidget,
-    QDialog
 )
 
-from app.dialogs.work_block_dialog import WorkBlockDialog
-from app.services.work_block_service import WorkBlockService
+from app.calendar_canvas import (
+    CALENDAR_BOTTOM_PADDING,
+    CALENDAR_END_HOUR,
+    CALENDAR_LEFT_MARGIN,
+    CALENDAR_RIGHT_MARGIN,
+    CALENDAR_START_HOUR,
+    CALENDAR_TOP_PADDING,
+    HOUR_HEIGHT,
+    CalendarCanvas,
+)
 
-CALENDAR_START_HOUR = 6
-CALENDAR_END_HOUR = 23
+from app.dialogs.work_block_dialog import (
+    WorkBlockDialog,
+)
 
-HOUR_HEIGHT = 80
-GRID_MINUTES = 15
+from app.services.work_block_service import (
+    WorkBlockService,
+)
 
-CALENDAR_TOP_PADDING = 16
-CALENDAR_BOTTOM_PADDING = 16
 
 class CalendarView(QFrame):
     def __init__(self):
         super().__init__()
 
-        self.work_block_service = WorkBlockService()
+        self.work_block_service = (
+            WorkBlockService()
+        )
 
         self.current_date = date.today()
 
@@ -36,60 +44,59 @@ class CalendarView(QFrame):
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(24, 20, 24, 20)
+
+        layout.setContentsMargins(
+            24,
+            20,
+            24,
+            20,
+        )
+
         layout.setSpacing(16)
 
-        layout.addLayout(self.create_view_switch())
-        layout.addLayout(self.create_calendar_header())
+        layout.addLayout(
+            self.create_view_switch()
+        )
 
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        layout.addLayout(
+            self.create_calendar_header()
+        )
 
-        self.calendar_container = QWidget()
+        self.scroll_area = QScrollArea()
+
+        self.scroll_area.setWidgetResizable(
+            True
+        )
+
+        self.scroll_area.setFrameShape(
+            QFrame.Shape.NoFrame
+        )
+
+        self.calendar_container = (
+            CalendarCanvas()
+        )
 
         calendar_height = (
-            CALENDAR_END_HOUR - CALENDAR_START_HOUR
-        ) * HOUR_HEIGHT + CALENDAR_TOP_PADDING + CALENDAR_BOTTOM_PADDING
-
-        self.calendar_container.setMinimumHeight(calendar_height)
-
-        self.create_calendar_grid(self.calendar_container)
-
-        planning_block = self.create_planning_block(
-            title="Google Ads optimieren",
-            start_hour=9,
-            start_minute=0,
-            duration_minutes=90,
+            (
+                CALENDAR_END_HOUR
+                - CALENDAR_START_HOUR
+            )
+            * HOUR_HEIGHT
+            + CALENDAR_TOP_PADDING
+            + CALENDAR_BOTTOM_PADDING
         )
 
-        planning_block.setParent(self.calendar_container)
-
-        minutes_from_start = self.minutes_from_calendar_start(
-            9,
-            0,
+        self.calendar_container.setMinimumHeight(
+            calendar_height
         )
 
-        y_position = CALENDAR_TOP_PADDING + int(
-            self.minutes_to_pixels(minutes_from_start)
+        self.scroll_area.setWidget(
+            self.calendar_container
         )
 
-        block_height = int(
-            self.minutes_to_pixels(90)
+        layout.addWidget(
+            self.scroll_area
         )
-
-        planning_block.setGeometry(
-            70,
-            y_position,
-            350,
-            block_height,
-        )
-
-        planning_block.raise_()
-
-        scroll_area.setWidget(self.calendar_container)
-        layout.addWidget(scroll_area)
-
 
     def create_view_switch(self):
         layout = QHBoxLayout()
@@ -101,8 +108,15 @@ class CalendarView(QFrame):
         week_button.setFixedWidth(90)
 
         layout.addStretch()
-        layout.addWidget(day_button)
-        layout.addWidget(week_button)
+
+        layout.addWidget(
+            day_button
+        )
+
+        layout.addWidget(
+            week_button
+        )
+
         layout.addStretch()
 
         return layout
@@ -110,159 +124,106 @@ class CalendarView(QFrame):
     def create_calendar_header(self):
         layout = QHBoxLayout()
 
-        work_block_button = QPushButton("+ WorkBlock")
+        work_block_button = QPushButton(
+            "+ WorkBlock"
+        )
+
         previous_button = QPushButton("←")
         next_button = QPushButton("→")
 
-        today = date.today()
-
         date_label = QLabel(
-            self.current_date.strftime("%d.%m.%Y")
+            self.current_date.strftime(
+                "%d.%m.%Y"
+            )
         )
+
         date_label.setStyleSheet(
-            "font-size: 20px; font-weight: 600;"
+            "font-size: 20px;"
+            "font-weight: 600;"
         )
 
         previous_button.setFixedWidth(40)
         next_button.setFixedWidth(40)
 
-        layout.addWidget(date_label)
+        layout.addWidget(
+            date_label
+        )
+
         layout.addStretch()
-        layout.addWidget(work_block_button)
+
+        layout.addWidget(
+            work_block_button
+        )
+
         work_block_button.clicked.connect(
             self.open_work_block_dialog
         )
-        layout.addWidget(previous_button)
-        layout.addWidget(next_button)
+
+        layout.addWidget(
+            previous_button
+        )
+
+        layout.addWidget(
+            next_button
+        )
 
         return layout
 
-    def create_grid_line(
+    def minutes_from_calendar_start(
         self,
-        parent,
         hour,
         minute,
-        y_position,
     ):
-        time_label = QLabel(parent)
-        time_label.setFixedWidth(55)
-
-        if minute == 0:
-            time_label.setText(
-                f"{hour:02d}:00"
-            )
-
-        time_label.setGeometry(
-            0,
-            y_position - 10,
-            55,
-            20,
-        )
-
-        line = QFrame(parent)
-        line.setFrameShape(QFrame.Shape.HLine)
-
-        if minute == 0:
-            line.setStyleSheet(
-                "color: #b0b0b0;"
-            )
-        elif minute == 30:
-            line.setStyleSheet(
-                "color: #d0d0d0;"
-            )
-        else:
-            line.setStyleSheet(
-                "color: #e8e8e8;"
-            )
-
-        line.setGeometry(
-            70,
-            y_position,
-            1000,
-            1,
-        )
-
-    def create_planning_block(self, title, start_hour, start_minute, duration_minutes):
-        block = QFrame()
-
-        block.setStyleSheet("""
-            QFrame {
-                background-color: #e8eefc;
-                border: 1px solid #b8c7f0;
-                border-radius: 8px;
-            }
-        """)
-
-        layout = QVBoxLayout(block)
-        layout.setContentsMargins(10, 8, 10, 8)
-
-        title_label = QLabel(title)
-
-        time_label = QLabel(
-            f"{start_hour:02d}:{start_minute:02d}"
-        )
-
-        layout.addWidget(title_label)
-        layout.addWidget(time_label)
-        layout.addStretch()
-
-        return block
-
-    def minutes_from_calendar_start(self, hour, minute):
         return (
-            (hour - CALENDAR_START_HOUR) * 60
+            (
+                hour
+                - CALENDAR_START_HOUR
+            )
+            * 60
             + minute
         )
 
-    def minutes_to_pixels(self, minutes):
+    def minutes_to_pixels(
+        self,
+        minutes,
+    ):
         return (
-            minutes / 60
+            minutes
+            / 60
             * HOUR_HEIGHT
         )
 
-    def create_calendar_grid(self, parent):
-        total_minutes = (
-            CALENDAR_END_HOUR - CALENDAR_START_HOUR
-        ) * 60
-
-        for minutes in range(
-            0,
-            total_minutes + 1,
-            GRID_MINUTES
-        ):
-            y_position = CALENDAR_TOP_PADDING + int(
-                self.minutes_to_pixels(minutes)
-            )
-
-            absolute_minutes = (
-                CALENDAR_START_HOUR * 60
-                + minutes
-            )
-
-            hour = absolute_minutes // 60
-            minute = absolute_minutes % 60
-
-            self.create_grid_line(
-                parent,
-                hour,
-                minute,
-                y_position,
-            )
-
-
     def open_work_block_dialog(self):
-        dialog = WorkBlockDialog(parent=self)
+        dialog = WorkBlockDialog(
+            parent=self
+        )
 
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        if (
+            dialog.exec()
+            != QDialog.DialogCode.Accepted
+        ):
             return
 
-        title = dialog.title_input.text().strip()
+        title = (
+            dialog.title_input
+            .text()
+            .strip()
+        )
 
         if not title:
             return
 
-        start_at = dialog.start_input.dateTime().toPython()
-        end_at = dialog.end_input.dateTime().toPython()
+        start_at = (
+            dialog.start_input
+            .dateTime()
+            .toPython()
+        )
+
+        end_at = (
+            dialog.end_input
+            .dateTime()
+            .toPython()
+        )
 
         description = (
             dialog.description_input
@@ -271,32 +232,43 @@ class CalendarView(QFrame):
             or None
         )
 
-        work_block = self.work_block_service.create_work_block(
+        self.work_block_service.create_work_block(
             title=title,
             start_at=start_at,
             end_at=end_at,
-            focus_level=dialog.focus_input.currentData(),
+            focus_level=(
+                dialog.focus_input
+                .currentData()
+            ),
             description=description,
         )
 
-        self.add_work_block_widget(work_block)
+        self.render_calendar_items()
 
-
-    def add_work_block_widget(self, work_block):
-        if work_block.start_at.date() != self.current_date:
+    def add_work_block_widget(
+        self,
+        work_block,
+    ):
+        if (
+            work_block.start_at.date()
+            != self.current_date
+        ):
             return
-        
+
         start_minutes = (
-            work_block.start_at.hour * 60
+            work_block.start_at.hour
+            * 60
             + work_block.start_at.minute
         )
 
         calendar_start_minutes = (
-            CALENDAR_START_HOUR * 60
+            CALENDAR_START_HOUR
+            * 60
         )
 
         minutes_from_start = (
-            start_minutes - calendar_start_minutes
+            start_minutes
+            - calendar_start_minutes
         )
 
         duration_minutes = int(
@@ -326,15 +298,22 @@ class CalendarView(QFrame):
             self.calendar_container
         )
 
-        block.setStyleSheet("""
+        block.setObjectName(
+            "workBlock"
+        )
+
+        block.setStyleSheet(
+            """
             QFrame {
                 background-color: #f0f0f0;
                 border: 1px solid #bdbdbd;
                 border-radius: 6px;
             }
-        """)
+            """
+        )
 
         layout = QVBoxLayout(block)
+
         layout.setContentsMargins(
             8,
             6,
@@ -347,23 +326,29 @@ class CalendarView(QFrame):
         )
 
         focus_label = QLabel(
-            f"Fokus: {work_block.focus_level.value}"
+            "Fokus: "
+            f"{work_block.focus_level.value}"
         )
 
-        layout.addWidget(title_label)
-        layout.addWidget(focus_label)
+        layout.addWidget(
+            title_label
+        )
 
-        left_margin = 70
-        right_margin = 20
+        layout.addWidget(
+            focus_label
+        )
 
-        block_width = (
-            self.calendar_container.width()
-            - left_margin
-            - right_margin
+        block_width = max(
+            0,
+            (
+                self.calendar_container.width()
+                - CALENDAR_LEFT_MARGIN
+                - CALENDAR_RIGHT_MARGIN
+            ),
         )
 
         block.setGeometry(
-            left_margin,
+            CALENDAR_LEFT_MARGIN,
             y_position,
             block_width,
             block_height,
@@ -371,3 +356,36 @@ class CalendarView(QFrame):
 
         block.show()
         block.raise_()
+
+    def render_calendar_items(self):
+        existing_work_blocks = (
+            self.calendar_container
+            .findChildren(
+                QFrame,
+                "workBlock",
+            )
+        )
+
+        for widget in existing_work_blocks:
+            widget.deleteLater()
+
+        for work_block in (
+            self.work_block_service
+            .work_blocks
+        ):
+            if (
+                work_block.start_at.date()
+                == self.current_date
+            ):
+                self.add_work_block_widget(
+                    work_block
+                )
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+
+        if hasattr(
+            self,
+            "calendar_container",
+        ):
+            self.render_calendar_items()

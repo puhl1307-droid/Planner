@@ -1,0 +1,42 @@
+QMainWindow,
+QDialog {
+    background-color: #f7f7f8;
+    color: #1f1f1f;
+}
+
+QLabel {
+    color: #1f1f1f;
+    background: transparent;
+}
+
+QPushButton {
+    min-height: 36px;
+    padding: 6px 12px;
+    border: 1px solid #d7d7db;
+    border-radius: 6px;
+    background-color: #ffffff;
+    color: #1f1f1f;
+}
+
+QPushButton:hover {
+    background-color: #f1f1f3;
+}
+
+QLineEdit,
+QPlainTextEdit,
+QTextEdit,
+QComboBox,
+QSpinBox,
+QDateEdit,
+QDateTimeEdit {
+    background-color: #ffffff;
+    color: #1f1f1f;
+    border: 1px solid #d7d7db;
+    border-radius: 6px;
+    padding: 6px;
+}
+
+QScrollArea {
+    border: none;
+    background-color: transparent;
+}

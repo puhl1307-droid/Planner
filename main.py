@@ -3,16 +3,14 @@ import sys
 from PySide6.QtWidgets import QApplication
 
 from app.main_window import MainWindow
+from app.styles.theme import apply_theme
 
 
-def main():
-    app = QApplication(sys.argv)
+app = QApplication(sys.argv)
 
-    window = MainWindow()
-    window.show()
+apply_theme(app)
 
-    sys.exit(app.exec())
+window = MainWindow()
+window.show()
 
-
-if __name__ == "__main__":
-    main()
+sys.exit(app.exec())
