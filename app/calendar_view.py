@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from PySide6.QtWidgets import (
     QDialog,
@@ -131,13 +131,11 @@ class CalendarView(QFrame):
         previous_button = QPushButton("←")
         next_button = QPushButton("→")
 
-        date_label = QLabel(
-            self.current_date.strftime(
-                "%d.%m.%Y"
-            )
+        self.date_label = QLabel(
+            self.current_date.strftime("%d.%m.%Y")
         )
 
-        date_label.setStyleSheet(
+        self.date_label.setStyleSheet(
             "font-size: 20px;"
             "font-weight: 600;"
         )
@@ -146,7 +144,7 @@ class CalendarView(QFrame):
         next_button.setFixedWidth(40)
 
         layout.addWidget(
-            date_label
+            self.date_label
         )
 
         layout.addStretch()
@@ -165,6 +163,14 @@ class CalendarView(QFrame):
 
         layout.addWidget(
             next_button
+        )
+
+        previous_button.clicked.connect(
+            self.show_previous_day
+        )
+
+        next_button.clicked.connect(
+            self.show_next_day
         )
 
         return layout
@@ -389,3 +395,21 @@ class CalendarView(QFrame):
             "calendar_container",
         ):
             self.render_calendar_items()
+
+
+    def show_previous_day(self):
+        self.current_date -= timedelta(days=1)
+        self.update_current_date()
+
+
+    def show_next_day(self):
+        self.current_date += timedelta(days=1)
+        self.update_current_date()
+
+
+    def update_current_date(self):
+        self.date_label.setText(
+            self.current_date.strftime("%d.%m.%Y")
+        )
+
+        self.render_calendar_items()
