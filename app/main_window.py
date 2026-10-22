@@ -29,10 +29,12 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        calendar_view = CalendarView()
-        
         areas = create_sample_areas()
         tasks = create_sample_tasks()
+
+        calendar_view = CalendarView(
+            tasks=tasks,
+        )
 
         task_panel = TaskPanel(
             tasks=tasks,

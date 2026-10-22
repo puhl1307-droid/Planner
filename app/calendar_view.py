@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -29,14 +30,23 @@ from app.services.work_block_service import (
     WorkBlockService,
 )
 
+from app.services.planning_validation_service import (
+    PlanningValidationService,
+)
+
+from app.dialogs.planning_block_dialog import PlanningBlockDialog
+from app.services.planning_block_service import PlanningBlockService
+
 
 class CalendarView(QFrame):
-    def __init__(self):
+    def __init__(self, tasks):
         super().__init__()
 
-        self.work_block_service = (
-            WorkBlockService()
-        )
+        self.tasks = tasks
+
+        self.work_block_service = WorkBlockService()
+        self.planning_block_service = PlanningBlockService()
+        self.planning_validation_service = PlanningValidationService()
 
         self.current_date = date.today()
 
@@ -127,6 +137,7 @@ class CalendarView(QFrame):
         work_block_button = QPushButton(
             "+ WorkBlock"
         )
+        planning_block_button = QPushButton("+ PlanningBlock")
 
         previous_button = QPushButton("←")
         next_button = QPushButton("→")
@@ -148,6 +159,12 @@ class CalendarView(QFrame):
         )
 
         layout.addStretch()
+
+        layout.addWidget(planning_block_button)
+
+        planning_block_button.clicked.connect(
+            self.open_planning_block_dialog
+        )
 
         layout.addWidget(
             work_block_button
@@ -365,19 +382,29 @@ class CalendarView(QFrame):
 
     def render_calendar_items(self):
         existing_work_blocks = (
-            self.calendar_container
-            .findChildren(
+            self.calendar_container.findChildren(
                 QFrame,
                 "workBlock",
             )
         )
 
-        for widget in existing_work_blocks:
+        existing_planning_blocks = (
+            self.calendar_container.findChildren(
+                QFrame,
+                "planningBlock",
+            )
+        )
+
+        for widget in (
+            existing_work_blocks
+            + existing_planning_blocks
+        ):
             widget.deleteLater()
 
+        # WorkBlocks zuerst:
+        # sie bilden den zeitlichen Arbeitsrahmen.
         for work_block in (
-            self.work_block_service
-            .work_blocks
+            self.work_block_service.work_blocks
         ):
             if (
                 work_block.start_at.date()
@@ -385,6 +412,20 @@ class CalendarView(QFrame):
             ):
                 self.add_work_block_widget(
                     work_block
+                )
+
+        # PlanningBlocks danach:
+        # sie liegen visuell über den WorkBlocks.
+        for planning_block in (
+            self.planning_block_service
+            .planning_blocks
+        ):
+            if (
+                planning_block.start_at.date()
+                == self.current_date
+            ):
+                self.add_planning_block_widget(
+                    planning_block
                 )
 
     def resizeEvent(self, event):
@@ -413,3 +454,171 @@ class CalendarView(QFrame):
         )
 
         self.render_calendar_items()
+
+
+    def open_planning_block_dialog(self):
+        dialog = PlanningBlockDialog(
+            tasks=self.tasks,
+            work_blocks=self.work_block_service.work_blocks,
+            parent=self,
+        )
+
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        planning_block = (
+            self.planning_block_service
+            .create_planning_block(
+                task_id=dialog.task_input.currentData(),
+                start_at=(
+                    dialog.start_input
+                    .dateTime()
+                    .toPython()
+                ),
+                end_at=(
+                    dialog.end_input
+                    .dateTime()
+                    .toPython()
+                ),
+                work_block_id=(
+                    dialog.work_block_input
+                    .currentData()
+                ),
+            )
+        )
+
+        warnings = (
+            self.planning_validation_service
+            .validate_planning_block(
+                planning_block=planning_block,
+                planning_blocks=(
+                    self.planning_block_service
+                    .planning_blocks
+                ),
+                work_blocks=(
+                    self.work_block_service
+                    .work_blocks
+                ),
+                tasks=self.tasks,
+            )
+        )
+
+        if warnings:
+            QMessageBox.warning(
+                self,
+                "Hinweise zur Planung",
+                "\n\n".join(warnings),
+            )
+
+        self.render_calendar_items()
+
+
+    def add_planning_block_widget(self, planning_block):
+        if planning_block.start_at.date() != self.current_date:
+            return
+
+        task = next(
+            (
+                task
+                for task in self.tasks
+                if task.id == planning_block.task_id
+            ),
+            None,
+        )
+
+        if task is None:
+            return
+
+        start_minutes = (
+            planning_block.start_at.hour * 60
+            + planning_block.start_at.minute
+        )
+
+        calendar_start_minutes = (
+            CALENDAR_START_HOUR * 60
+        )
+
+        minutes_from_start = (
+            start_minutes
+            - calendar_start_minutes
+        )
+
+        duration_minutes = int(
+            (
+                planning_block.end_at
+                - planning_block.start_at
+            ).total_seconds()
+            / 60
+        )
+
+        y_position = (
+            CALENDAR_TOP_PADDING
+            + int(
+                self.minutes_to_pixels(
+                    minutes_from_start
+                )
+            )
+        )
+
+        block_height = int(
+            self.minutes_to_pixels(
+                duration_minutes
+            )
+        )
+
+        block = QFrame(
+            self.calendar_container
+        )
+
+        block.setObjectName(
+            "planningBlock"
+        )
+
+        block.setStyleSheet("""
+            QFrame#planningBlock {
+                background-color: #e8eefc;
+                border: 1px solid #9fb3e8;
+                border-radius: 6px;
+            }
+        """)
+
+        layout = QVBoxLayout(block)
+        layout.setContentsMargins(8, 6, 8, 6)
+
+        title_label = QLabel(
+            task.title
+        )
+
+        time_label = QLabel(
+            planning_block.start_at.strftime("%H:%M")
+            + " – "
+            + planning_block.end_at.strftime("%H:%M")
+        )
+
+        layout.addWidget(title_label)
+        layout.addWidget(time_label)
+
+        left_margin = (
+            CALENDAR_LEFT_MARGIN + 10
+        )
+
+        right_margin = (
+            CALENDAR_RIGHT_MARGIN + 10
+        )
+
+        block_width = max(
+            0,
+            self.calendar_container.width()
+            - left_margin
+            - right_margin
+        )
+
+        block.setGeometry(
+            left_margin,
+            y_position,
+            block_width,
+            block_height,
+        )
+
+        block.show()
+        block.raise_()
